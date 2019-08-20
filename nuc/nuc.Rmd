@@ -1,0 +1,53 @@
+---
+title: "Nuclear Tuesday"
+output: html_document
+---
+
+Goal: Text.
+
+
+Packages
+```{r pac}
+
+library(readr)
+library(magrittr)
+
+```
+
+Data
+```{r dat}
+
+# Download Tidy Tuesday data.
+#dat = read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-08-20/nuclear_explosions.csv")
+# Save Tidy Tuesday data.
+#write_csv(dat, "nuc.csv")
+# Read Tidy Tuesday data.
+dat = read_csv("nuc.csv")
+
+# Download map.
+# Save map.
+# Read map.
+
+```
+
+Wrangling
+```{r wra}
+
+# Spatial
+
+# Nuclear
+use = dat %>% 
+  select(year, id_no, latitude, longitude, yield_upper)
+
+```
+
+Visualization
+```{r vis}
+
+# Map layer
+# Nuclear layer
+# Edges
+# Animation
+
+```
+
