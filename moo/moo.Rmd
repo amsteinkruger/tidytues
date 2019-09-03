@@ -1,0 +1,32 @@
+---
+title: "Transistor Tuesday"
+output: html_document
+---
+
+Goal: Text.
+
+
+Packages
+```{r pac}
+
+library(tidyverse)
+
+```
+
+Data and Wrangling
+```{r set}
+
+cpu = read_csv("cpu.csv")
+
+gpu = read_csv("gpu.csv")
+
+ram = read_csv("ram.csv")
+
+```
+
+Visualization
+```{r vis}
+
+
+```
+
