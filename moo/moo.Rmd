@@ -10,6 +10,9 @@ Packages
 ```{r pac}
 
 library(tidyverse)
+library(broom)
+library(viridis)
+library(gridExtra)
 library(ggridges)
 
 ```
@@ -32,10 +35,10 @@ ram = read_csv("ram.csv") %>%
   rename(processor = chip_name,
          designer = manufacturer_s) # Suppose designer and manufacturer are the same for our purposes.
 
-dat = bind_rows(list(cpu = cpu, 
-                     gpu = gpu, 
-                     ram = ram), 
-                .id = "component")
+dat = bind_rows(list(CPU = cpu, 
+                     GPU = gpu, 
+                     RAM = ram), 
+                .id = "Component")
 
 ```
 
@@ -80,17 +83,22 @@ raw =
   ggplot(data = dat) +
   geom_jitter(aes(x = date_of_introduction,
                   y = log(transistor_count),
-                  color = component,
-                  fill = component),
+                  color = Component,
+                  fill = Component),
              shape = 21) +
   geom_rug(aes(x = date_of_introduction,
                y = log(transistor_count),
-               color = component),
+               color = Component),
            position = "jitter") +
   scale_color_manual(values = pal_col) +
   scale_fill_manual(values = pal_fil) +
-  labs(x = "", y = "Transistors (Log Scale)") +
-  theme_classic()
+  labs(x = "",
+       y = "Transistors (Log Scale)",
+       title = "A (Raw Data)") +
+  scale_x_continuous(breaks = c(1960, 1975, 1990, 2005, 2020),
+                     limits = c(1960, 2020)) +
+  theme_classic() +
+  theme(legend.position = "none")
 
 # Model, Standard Errors.
 ste = 
@@ -104,18 +112,23 @@ ste =
                 y = .fitted)) +
   geom_point(aes(x = date_of_introduction,
                  y = log(transistor_count),
-                 color = component,
-                 fill = component),
+                 color = Component,
+                 fill = Component),
              shape = 16,
              alpha = 0.50) +
   geom_rug(aes(x = date_of_introduction,
                y = log(transistor_count),
-               color = component),
+               color = Component),
            position = "jitter") +
   scale_color_manual(values = pal_col) +
   scale_fill_manual(values = pal_fil) +
-  labs(x = "", y = "Transistors (Log Scale)") +
-  theme_classic()  
+  scale_x_continuous(breaks = c(1960, 1975, 1990, 2005, 2020),
+                     limits = c(1960, 2020)) +
+  labs(x = "", 
+       y = "",
+       title = "B (Linear Fit)") +
+  theme_classic() +
+  theme(legend.position = "none")
 
 # Model, Residuals.
 res = 
@@ -127,38 +140,45 @@ res =
                color = "grey10") +
   geom_point(aes(x = date_of_introduction,
                  y = log(transistor_count),
-                 color = component,
-                 fill = component),
+                 color = Component,
+                 fill = Component),
              shape = 16) +
   geom_point(aes(x = date_of_introduction,
                  y = .fitted),
              color = "grey10") +
   geom_rug(aes(x = date_of_introduction,
                y = log(transistor_count),
-               color = component),
+               color = Component),
            position = "jitter") +
   scale_color_manual(values = pal_col) +
   scale_fill_manual(values = pal_fil) +
-  labs(x = "", y = "Transistors (Log Scale)") +
-  theme_classic()  
+  scale_x_continuous(breaks = c(1960, 1975, 1990, 2005, 2020),
+                     limits = c(1960, 2020)) +
+  labs(x = "", 
+       y = "",
+       title = "C (Residuals)") +
+  theme_classic()
 
 # Leftover: clean up breaks, legends, letters, call-outs
   
-grid.arrange(raw, ste, res, nrow = 1)  
+vis_reg = arrangeGrob(raw, 
+                      ste, 
+                      res, 
+                      nrow = 1)
+
+ggsave("vis_reg.png", 
+       vis_reg, 
+       dpi = 300,
+       width = 9.5,
+       height = 4.5)
 
 # Ridges!
-#x = residual badness,
-#y = count,
-#z = designer
-#z = component
-#z = decade?
-
-# Filter out products outside the 0.75 from more prolific designers.
+#  Filter out products outside the 0.75 from more prolific designers.
 dat_des = dat %>% 
   add_count(designer) %>% 
   top_frac(0.75, n)
 
-# Plot densities of products over residuals for the more prolific designers.
+#  Plot densities of products over residuals for the more prolific designers.
 rid_des = 
   ggplot(data = dat_des) +
   geom_density_ridges(aes(x = .resid,
@@ -168,21 +188,31 @@ rid_des =
                       alpha = 0.75,
                       stat = "binline") +
   scale_fill_viridis_d(option = "B") +
-  theme_classic()
+  scale_x_continuous(breaks = c(-6, -3, 0, 3, 6)) +
+  labs(x = "",
+       y = "",
+       title = "D (Designers)") +
+  theme_classic() +
+  theme(legend.position = "none")
 
-# Plot densities of products over residuals by component.
+#  Plot densities of products over residuals by component.
 rid_com =
   ggplot(data = dat) +
   geom_density_ridges(aes(x = .resid,
-                          y = component,
-                          fill = component),
+                          y = Component,
+                          fill = Component),
                       color = "black",
                       alpha = 0.75,
                       stat = "binline") +
   scale_fill_manual(values = pal_col) +
-  theme_classic()
+  scale_x_continuous(breaks = c(-6, -3, 0, 3, 6)) +
+  labs(x = "Residuals",
+       y = "",
+       title = "E (Components)") +
+  theme_classic() +
+  theme(legend.position = "none")
 
-# Plot densities of products over residuals by decade.
+#  Plot densities of products over residuals by decade.
 dat_dec = dat %>% 
   mutate(dec = as.factor(ceiling((y + 1) / 10))) %>% 
   drop_na(dec)
@@ -200,9 +230,25 @@ rid_dec =
                       alpha = 0.75,
                       stat = "binline") +
   scale_fill_manual(values = pal_col_six) +
-  theme_classic()
+  scale_x_continuous(breaks = c(-6, -3, 0, 3, 6)) +
+  labs(x = "",
+       y = "",
+       title = "F (Decades)") +
+  theme_classic() +
+  theme(legend.position = "none")
 
-# Leftover: labels, legend order, call-outs
+#  Leftover: labels, legend order, call-outs
+
+vis_res = arrangeGrob(rid_des, 
+                      rid_com, 
+                      rid_dec, 
+                      nrow = 1) 
+
+ggsave("vis_res.png", 
+       vis_res, 
+       dpi = 300,
+       width = 9.5,
+       height = 4.5)
 
 ```
 
