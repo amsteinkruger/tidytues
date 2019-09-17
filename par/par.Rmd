@@ -1,0 +1,81 @@
+---
+title: "Alaska's National Parks"
+output: html_document
+---
+
+Goal: Visits to Alaska's National Parks by year in an interesting projection.
+
+```{r lib}
+
+library(tidyverse)
+library(sf)
+library(rnaturalearth)
+
+```
+
+```{r dat}
+
+# https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-09-17
+dat = read_csv("par.csv") %>% 
+  filter(state == "AK",
+         year != "Total") %>% 
+  select(year,  
+         parkname, 
+         visitors) %>% 
+  mutate(year = as.numeric(year))
+
+# https://catalog.data.gov/dataset/national-parks
+nps = 
+  st_read("nps/nps_boundary.shp") %>% 
+  filter(STATE == "AK") %>% 
+  select(PARKNAME) %>% 
+  mutate(parkname = as.character(PARKNAME)) %>% 
+  select(-PARKNAME)
+
+# smoosh
+jat = dat %>% 
+  full_join(nps, by = "parkname") %>% 
+  st_sf()
+
+# project
+crs = "+proj=laea +lat_0=65.1719 +lon_0=152.0789 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
+
+pat = jat %>% st_transform(crs = crs)
+
+yat = pat %>% na.omit %>% filter(year == max(year))
+
+# bound
+box = st_bbox(yat) %>% st_crs(crs = crs)
+
+# naturalearth
+land = 
+  ne_download(scale = 110, 
+              type = "coastline", 
+              category = "physical", 
+              returnclass = "sf") %>% 
+  st_transform(crs = crs)
+
+```
+
+```{r vis}
+
+vis = 
+  ggplot() +
+  geom_sf(data = yat,
+          aes(fill = visitors),
+          color = NA) +
+  # geom_sf(data = land,
+  #         fill = NA,
+  #         color = "black") +
+  coord_sf(xlim = c(box["xmin"], 
+                    box["xmax"]), 
+           ylim = c(box["ymin"], 
+                    box["ymax"]),
+           expand = FALSE) +
+  theme_void()
+  
+
+```
+
+
+
