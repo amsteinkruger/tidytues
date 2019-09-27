@@ -10,6 +10,8 @@ Goal: Visits to Alaska's National Parks by year in an interesting projection.
 library(tidyverse)
 library(sf)
 library(rnaturalearth)
+library(viridis)
+library(gganimate)
 
 ```
 
@@ -19,7 +21,7 @@ library(rnaturalearth)
 dat = read_csv("par.csv") %>% 
   filter(state == "AK",
          year != "Total") %>% 
-  select(year,  
+  dplyr::select(year,  
          parkname, 
          visitors) %>% 
   mutate(year = as.numeric(year))
@@ -28,7 +30,7 @@ dat = read_csv("par.csv") %>%
 nps = 
   st_read("nps/nps_boundary.shp") %>% 
   filter(STATE == "AK") %>% 
-  select(PARKNAME) %>% 
+  dplyr::select(PARKNAME) %>% 
   mutate(parkname = as.character(PARKNAME)) %>% 
   select(-PARKNAME)
 
@@ -37,22 +39,19 @@ jat = dat %>%
   full_join(nps, by = "parkname") %>% 
   st_sf()
 
-# project
-crs = "+proj=laea +lat_0=65.1719 +lon_0=152.0789 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs"
+crs = "+init=epsg:3338"
 
-pat = jat %>% st_transform(crs = crs)
-
-yat = pat %>% na.omit %>% filter(year == max(year))
-
-# bound
-box = st_bbox(yat) %>% st_crs(crs = crs)
+pat = jat %>% 
+  filter(year > 1954) %>% 
+  st_transform(crs = crs)
 
 # naturalearth
-land = 
-  ne_download(scale = 110, 
-              type = "coastline", 
-              category = "physical", 
+ak = 
+  ne_download(scale = 10, 
+              type = "admin_1_states_provinces",
               returnclass = "sf") %>% 
+  filter(name == "Alaska") %>% 
+  select(name, admin) %>% 
   st_transform(crs = crs)
 
 ```
@@ -61,19 +60,30 @@ land =
 
 vis = 
   ggplot() +
-  geom_sf(data = yat,
-          aes(fill = visitors),
+  geom_sf(data = ak,
+          fill = "grey75",
           color = NA) +
-  # geom_sf(data = land,
-  #         fill = NA,
-  #         color = "black") +
-  coord_sf(xlim = c(box["xmin"], 
-                    box["xmax"]), 
-           ylim = c(box["ymin"], 
-                    box["ymax"]),
-           expand = FALSE) +
-  theme_void()
-  
+  geom_sf(data = pat,
+          aes(fill = log(visitors)),
+          color = NA) +
+  scale_fill_viridis_c(option = "A") +
+  labs(title = 'Visitors to Alaskan National Parks in {current_frame} (Natural Log)') +
+  guides(fill = guide_colorbar(barwidth = 30,
+                               barheight = 1,
+                               ticks = FALSE)) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.title=element_blank()) +
+  transition_manual(frames = year) +
+  enter_fade() +
+  exit_fade()
+
+anim_save("par_vis.gif", 
+          animate(vis,
+                  fps = 30,
+                  duration = 30,
+                  width = 1200,
+                  height = 800))
 
 ```
 
