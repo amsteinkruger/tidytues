@@ -18,12 +18,11 @@ library(gganimate)
 ```{r dat}
 
 # https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-09-17
-dat = read_csv("par.csv") %>% 
+dat = 
+  read_csv("par.csv") %>% 
   filter(state == "AK",
          year != "Total") %>% 
-  dplyr::select(year,  
-         parkname, 
-         visitors) %>% 
+  dplyr::select(year, parkname, visitors) %>% 
   mutate(year = as.numeric(year))
 
 # https://catalog.data.gov/dataset/national-parks
@@ -35,13 +34,15 @@ nps =
   select(-PARKNAME)
 
 # smoosh
-jat = dat %>% 
+jat = 
+  dat %>% 
   full_join(nps, by = "parkname") %>% 
   st_sf()
 
 crs = "+init=epsg:3338"
 
-pat = jat %>% 
+pat = 
+  jat %>% 
   filter(year > 1954) %>% 
   st_transform(crs = crs)
 
@@ -82,8 +83,8 @@ anim_save("par_vis.gif",
           animate(vis,
                   fps = 30,
                   duration = 30,
-                  width = 1200,
-                  height = 800))
+                  width = 800,
+                  height = 600))
 
 ```
 

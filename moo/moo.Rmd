@@ -3,7 +3,7 @@ title: "Transistor Tuesday"
 output: html_document
 ---
 
-Goal: Text.
+Goal: check out residuals on a linear fit of Moore's Law.
 
 
 Packages
@@ -57,12 +57,12 @@ mod = lm(log(transistor_count) ~ y, # Run model for linear fit.
 dat = dat %>% 
   left_join(augment(mod),
             by = c("y", 
-                   "logt" = "log.transistor_count.")) %>% 
+                   "logt" = "log(transistor_count)")) %>% 
   select(-.rownames, 
          -.hat, 
          -.sigma, 
          -.cooksd)
-  
+
 ```
 
 Visualization
@@ -85,7 +85,7 @@ raw =
                   y = log(transistor_count),
                   color = Component,
                   fill = Component),
-             shape = 21) +
+              shape = 21) +
   geom_rug(aes(x = date_of_introduction,
                y = log(transistor_count),
                color = Component),
@@ -94,39 +94,9 @@ raw =
   scale_fill_manual(values = pal_fil) +
   labs(x = "",
        y = "Transistors (Log Scale)",
-       title = "A (Raw Data)") +
+       title = "Data") +
   scale_x_continuous(breaks = c(1960, 1975, 1990, 2005, 2020),
                      limits = c(1960, 2020)) +
-  theme_classic() +
-  theme(legend.position = "none")
-
-# Model, Standard Errors.
-ste = 
-  ggplot(data = dat) +
-  geom_ribbon(aes(x = date_of_introduction,
-                  ymin = .fitted - .se.fit,
-                  ymax = .fitted + .se.fit),
-              color = "grey75",
-              fill = "grey50") +
-  geom_line(aes(x = date_of_introduction,
-                y = .fitted)) +
-  geom_point(aes(x = date_of_introduction,
-                 y = log(transistor_count),
-                 color = Component,
-                 fill = Component),
-             shape = 16,
-             alpha = 0.50) +
-  geom_rug(aes(x = date_of_introduction,
-               y = log(transistor_count),
-               color = Component),
-           position = "jitter") +
-  scale_color_manual(values = pal_col) +
-  scale_fill_manual(values = pal_fil) +
-  scale_x_continuous(breaks = c(1960, 1975, 1990, 2005, 2020),
-                     limits = c(1960, 2020)) +
-  labs(x = "", 
-       y = "",
-       title = "B (Linear Fit)") +
   theme_classic() +
   theme(legend.position = "none")
 
@@ -143,9 +113,9 @@ res =
                  color = Component,
                  fill = Component),
              shape = 16) +
-  geom_point(aes(x = date_of_introduction,
-                 y = .fitted),
-             color = "grey10") +
+  geom_path(aes(x = date_of_introduction,
+                y = .fitted),
+            color = "grey10") +
   geom_rug(aes(x = date_of_introduction,
                y = log(transistor_count),
                color = Component),
@@ -156,21 +126,21 @@ res =
                      limits = c(1960, 2020)) +
   labs(x = "", 
        y = "",
-       title = "C (Residuals)") +
+       title = "Linear Fit and Residuals") +
   theme_classic()
 
+
 # Leftover: clean up breaks, legends, letters, call-outs
-  
-vis_reg = arrangeGrob(raw, 
-                      ste, 
+vis_reg = arrangeGrob(raw,
                       res, 
-                      nrow = 1)
+                      nrow = 1,
+                      widths = 4:5)
 
 ggsave("vis_reg.png", 
        vis_reg, 
        dpi = 300,
-       width = 9.5,
-       height = 4.5)
+       width = 8,
+       height = 4)
 
 # Ridges!
 #  Filter out products outside the 0.75 from more prolific designers.
@@ -181,9 +151,10 @@ dat_des = dat %>%
 #  Plot densities of products over residuals for the more prolific designers.
 rid_des = 
   ggplot(data = dat_des) +
-  geom_density_ridges(aes(x = .resid,
+  geom_density_ridges(aes(x = .std.resid,
                           y = designer,
                           fill = designer),
+                      scale = 0.85,
                       color = "black",
                       alpha = 0.75,
                       stat = "binline") +
@@ -191,16 +162,17 @@ rid_des =
   scale_x_continuous(breaks = c(-6, -3, 0, 3, 6)) +
   labs(x = "",
        y = "",
-       title = "D (Designers)") +
+       title = "Designers") +
   theme_classic() +
   theme(legend.position = "none")
 
 #  Plot densities of products over residuals by component.
 rid_com =
   ggplot(data = dat) +
-  geom_density_ridges(aes(x = .resid,
+  geom_density_ridges(aes(x = .std.resid,
                           y = Component,
                           fill = Component),
+                      scale = 0.85,
                       color = "black",
                       alpha = 0.75,
                       stat = "binline") +
@@ -208,7 +180,7 @@ rid_com =
   scale_x_continuous(breaks = c(-6, -3, 0, 3, 6)) +
   labs(x = "Residuals",
        y = "",
-       title = "E (Components)") +
+       title = "Components") +
   theme_classic() +
   theme(legend.position = "none")
 
@@ -223,9 +195,10 @@ pal_col_six = inferno(6,
 
 rid_dec = 
   ggplot(data = dat_dec) +
-  geom_density_ridges(aes(x = .resid,
+  geom_density_ridges(aes(x = .std.resid,
                           y = dec,
                           fill = dec),
+                      scale = 0.85,
                       color = "black",
                       alpha = 0.75,
                       stat = "binline") +
@@ -233,7 +206,7 @@ rid_dec =
   scale_x_continuous(breaks = c(-6, -3, 0, 3, 6)) +
   labs(x = "",
        y = "",
-       title = "F (Decades)") +
+       title = "Decades") +
   theme_classic() +
   theme(legend.position = "none")
 
