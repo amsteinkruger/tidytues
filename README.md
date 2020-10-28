@@ -31,4 +31,7 @@ I animated visits to National Parks in Alaska since 1955.
 
 # Canadian Wind Turbines | Week 44 (2020-10-27)
 
-Well, I *should* do something for this.
+I looked at project footprints and turbine efficiences in Canadian wind
+power.
+
+![](tur/vis_tur.png)
